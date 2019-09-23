@@ -8,6 +8,8 @@ import { AppRoutingModule } from './app-routing.module';
 //import { ShoppingListModule } from './shopping-list/shopping-list.module';
 import { SharedModule } from './shared/shared.module';
 import { CoreModule } from './/core.module';
+import { ServiceWorkerModule } from '@angular/service-worker';
+import { environment } from '../environments/environment';
 
 @NgModule({
   declarations: [
@@ -18,9 +20,9 @@ import { CoreModule } from './/core.module';
     BrowserModule,
     AppRoutingModule,
     HttpClientModule,
-//    ShoppingListModule,
     SharedModule,
     CoreModule,
+    ServiceWorkerModule.register('ngsw-worker.js', { enabled: environment.production }),
   ],     
   bootstrap: [AppComponent]
 })
