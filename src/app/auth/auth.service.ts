@@ -2,8 +2,8 @@ import {Injectable} from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { catchError , tap } from 'rxjs/operators';
-import { throwError, BehaviorSubject } from 'rxjs';
+import { catchError , tap} from 'rxjs/operators';
+import { throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 import { User } from './user.model';
@@ -24,7 +24,7 @@ export interface AuthResponseData{
 
 export class AuthService{
 
-    user = new BehaviorSubject<User>(null);
+    //user = new BehaviorSubject<User>(null);
     private tokenExpirationTimer;
 
     constructor(private http: HttpClient, private router:Router,private store:Store<fromApp.AppState>){}
@@ -37,7 +37,8 @@ export class AuthService{
             returnSecureToken: true
             }
         )
-        .pipe(catchError(this.handleError), tap(resData => 
+        .pipe(catchError(this.handleError),
+         tap(resData => 
             {
                 this.handleAuthentication(resData.email,resData.localId,resData.idToken,+resData.expiresIn);
             }
@@ -48,12 +49,13 @@ export class AuthService{
     login(email: string, password: string){
         return this.http.post<AuthResponseData>
         ('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+environment.fireBaseAPIkey,
-        {email: email,
+        {
+            email: email,
             password: password,
             returnSecureToken: true
-        }
-        )
-        .pipe(catchError(this.handleError), tap(resData => 
+        })
+        .pipe(catchError(this.handleError), 
+        tap(resData => 
             {
                 this.handleAuthentication(resData.email,resData.localId,resData.idToken,+resData.expiresIn);
             }
@@ -75,7 +77,7 @@ export class AuthService{
         const loadedUser = new User(userData.email,userData.id,userData._token,new Date(userData._tokenExpirationDate));
         if(loadedUser.token){
             //this.user.next(loadedUser);
-            this.store.dispatch(new AuthAactions.Login(
+            this.store.dispatch(new AuthAactions.AuthenticateSuccess(
                 {
                     email: loadedUser.email,
                     id: loadedUser.id,
@@ -121,7 +123,7 @@ export class AuthService{
         );
         //this.user.next(user);
         this.store.dispatch(
-            new AuthAactions.Login(
+            new AuthAactions.AuthenticateSuccess(
             {
                 email: email,
                 id: userid,
