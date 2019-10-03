@@ -3,11 +3,12 @@ import { switchMap, catchError, map, tap } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 
 import * as AuthActions from './auth.actions';
-import { AuthResponseData } from '../auth.service';
+import { AuthResponseData, AuthService } from '../auth.service';
 import { environment } from 'src/environments/environment';
 import { of } from 'rxjs';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
+import { User } from '../user.model';
 
 export interface AuthResponseData{
     kind: string;
@@ -25,9 +26,9 @@ const handleAuthentication = (
      userid: string,
      token: string
      ) => {
-    const expirationDate = new Date(
-        new Date().getTime() + expiresIn * 1000
-    );
+    const expirationDate = new Date(new Date().getTime() + expiresIn * 1000);
+    const user = new User(email,userid,token,expirationDate);
+    localStorage.setItem('userData', JSON.stringify(user));
     return new AuthActions.AuthenticateSuccess({
         email: email,
         id: userid,
@@ -70,8 +71,10 @@ export class AuthEffects {
             returnSecureToken: true
             }
         ).pipe(
-            map(
-                resData => {
+            tap(resData => {
+                this.authService.setLogoutTimer(+resData.expiresIn * 1000);
+            }),
+            map(resData => {
                     return handleAuthentication(+resData.expiresIn,
                         resData.email,
                         resData.localId,
@@ -98,8 +101,10 @@ export class AuthEffects {
                 returnSecureToken: true
             }
             ).pipe(
-                map(
-                    resData => {
+                tap(resData => {
+                    this.authService.setLogoutTimer(+resData.expiresIn * 1000);
+                }),
+                map(resData => {
                         return handleAuthentication(+resData.expiresIn,
                             resData.email,
                             resData.localId,
@@ -116,12 +121,55 @@ export class AuthEffects {
 
     @Effect({dispatch: false})
     authSuccess = this.actions$.pipe(
-        ofType(AuthActions.AUTHENTICATE_SUCCESS),
+        ofType(AuthActions.AUTHENTICATE_SUCCESS,),
         tap(() => {
             this.router.navigate(['/']);
         })
     );
 
-    constructor(private actions$: Actions, private http:HttpClient, private router: Router){}
+    @Effect()
+    autoLogin = this.actions$.pipe(
+        ofType(AuthActions.AUTO_LOGIN),
+        map(() => {
+            const userData:{
+                    email: string
+                    id: string;
+                    _token: string;
+                    _tokenExpirationDate:Date;
+            } = JSON.parse(localStorage.getItem('userData'));
+            if(!userData){
+                return {type: 'Unsuccess'};
+            }
+            
+            const loadedUser = new User(userData.email,userData.id,userData._token,new Date(userData._tokenExpirationDate));
+            if(loadedUser.token){
+                //this.user.next(loadedUser);
+                const expirationDuration = new Date(userData._tokenExpirationDate).getTime() - new Date().getTime();
+                this.authService.setLogoutTimer(expirationDuration);
+                return new AuthActions.AuthenticateSuccess(
+                    {
+                        email: loadedUser.email,
+                        id: loadedUser.id,
+                        token:loadedUser.token,
+                        tokenExpirationDate:new Date(userData._tokenExpirationDate)
+    
+                    });
+            }else{
+                return {type: 'Unsuccess'};
+            }    
+        })
+    )
+
+    @Effect({dispatch: false})
+    authLogout = this.actions$.pipe(
+        ofType(AuthActions.LOGOUT),
+        tap(() => {
+            this.authService.clearLogoutTimer();
+            localStorage.removeItem('userData');
+            this.router.navigate(['/auth']);
+        })
+    )
+
+    constructor(private actions$: Actions, private http:HttpClient, private router: Router, private authService: AuthService){}
     
 }
