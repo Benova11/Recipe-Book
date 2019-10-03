@@ -1,12 +1,12 @@
 import {Injectable} from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+//import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { catchError , tap} from 'rxjs/operators';
-import { throwError } from 'rxjs';
-import { environment } from '../../environments/environment';
+//import { catchError , tap} from 'rxjs/operators';
+//import { throwError } from 'rxjs';
+//import { environment } from '../../environments/environment';
 
-import { User } from './user.model';
+//import { User } from './user.model';
 import * as fromApp from '../store/app.reducer';
 import * as AuthAactions from './store/auth.actions';
 
@@ -27,8 +27,23 @@ export class AuthService{
     //user = new BehaviorSubject<User>(null);
     private tokenExpirationTimer;
 
-    constructor(private http: HttpClient, private router:Router,private store:Store<fromApp.AppState>){}
+    constructor(private router:Router,private store:Store<fromApp.AppState>){}
 
+    setLogoutTimer(expirationDuration: number){//formly-"autoLogout"
+        this.tokenExpirationTimer = setTimeout(() => 
+        {
+            this.store.dispatch(new AuthAactions.Logout());
+        }
+        ,expirationDuration)
+    }
+
+    clearLogoutTimer(){
+        if(this.tokenExpirationTimer) {
+            clearTimeout(this.tokenExpirationTimer);
+            this.tokenExpirationTimer = null;
+        }
+    }
+/*
     signup(email: string, password: string){
         return this.http.post<AuthResponseData>
             ('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+environment.fireBaseAPIkey,
@@ -101,15 +116,9 @@ export class AuthService{
         }
         this.tokenExpirationTimer = null;
     }
+*/
 
-    autoLogout(expirationDuration: number){
-        this.tokenExpirationTimer = setTimeout(() => 
-        {
-            this.logout();
-        }
-        ,expirationDuration)
-    }
-
+/*
     private handleAuthentication(email: string,userid: string, token: string, expiresIn: number){
         const expirationDate = new Date(
             new Date().getTime() + expiresIn * 1000
@@ -154,4 +163,5 @@ export class AuthService{
             }
             return throwError(errorMessage);
     }
+    */
 }
