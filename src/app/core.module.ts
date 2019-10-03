@@ -9,7 +9,7 @@ import { RecipeService } from './recipes/recipe.service';
 @NgModule({
     providers: [
         //ShoppingListService,
-        RecipeService,
+        //RecipeService,
         {
          provide: HTTP_INTERCEPTORS,
          useClass:AuthInterceptorService, 
